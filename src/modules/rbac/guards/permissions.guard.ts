@@ -1,14 +1,17 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../../user/entities/user.entity';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private prisma: PrismaService,
-  ) {}
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
@@ -25,16 +28,12 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
-    const userWithPermissions = await this.prisma.user.findUnique({
+    const userWithPermissions = await this.userRepository.findOne({
       where: { id: user.userId },
-      include: {
+      relations: {
         role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
-              },
-            },
+          permissions: {
+            permission: true,
           },
         },
       },
@@ -48,7 +47,7 @@ export class PermissionsGuard implements CanActivate {
       rp => rp.permission.name
     );
 
-    return requiredPermissions.every(permission => 
+    return requiredPermissions.every(permission =>
       userPermissions.includes(permission)
     );
   }

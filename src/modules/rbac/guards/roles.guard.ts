@@ -1,14 +1,17 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../../user/entities/user.entity';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private prisma: PrismaService,
-  ) {}
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
@@ -25,9 +28,9 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    const userWithRole = await this.prisma.user.findUnique({
+    const userWithRole = await this.userRepository.findOne({
       where: { id: user.userId },
-      include: { role: true },
+      relations: { role: true },
     });
 
     if (!userWithRole?.role) {

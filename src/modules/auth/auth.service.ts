@@ -1,21 +1,24 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { User } from '../user/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
 
@@ -24,24 +27,23 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        ...registerDto,
-        password: hashedPassword,
-      },
+    const user = this.userRepository.create({
+      ...registerDto,
+      password: hashedPassword,
     });
+    const savedUser = await this.userRepository.save(user);
 
-    const tokens = await this.generateTokens(user.id, user.email);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    const tokens = await this.generateTokens(savedUser.id, savedUser.email);
+    await this.updateRefreshToken(savedUser.id, tokens.refreshToken);
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: savedUser.id, email: savedUser.email, name: savedUser.name },
       ...tokens,
     };
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
     });
 
@@ -59,7 +61,7 @@ export class AuthService {
   }
 
   async refreshTokens(userId: number, refreshToken: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { id: userId },
     });
 
@@ -79,10 +81,7 @@ export class AuthService {
   }
 
   async logout(userId: number) {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshToken: null },
-    });
+    await this.userRepository.update(userId, { refreshToken: null });
   }
 
   private async generateTokens(userId: number, email: string) {
@@ -104,9 +103,6 @@ export class AuthService {
 
   private async updateRefreshToken(userId: number, refreshToken: string) {
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshToken: hashedRefreshToken },
-    });
+    await this.userRepository.update(userId, { refreshToken: hashedRefreshToken });
   }
 }

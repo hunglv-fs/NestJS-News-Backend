@@ -1,34 +1,38 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { SubmitArticleDto } from './dto/submit-article.dto';
 import { ApproveArticleDto, ApprovalAction } from './dto/approve-article.dto';
-import { Observable, from, throwError, timer } from 'rxjs';
-import { switchMap, tap, retryWhen, take, delay } from 'rxjs/operators';
-import { ArticleStatus } from '@prisma/client';
+import { Observable, from, throwError } from 'rxjs';
+import { switchMap, tap, retryWhen, take, delay, map } from 'rxjs/operators';
+import { Article, ArticleStatus } from './entities/article.entity';
 
 @Injectable()
 export class ArticleService {
   private readonly logger = new Logger(ArticleService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Article)
+    private articleRepository: Repository<Article>,
+  ) { }
 
   createDraft(createArticleDto: CreateArticleDto): Observable<any> {
     const slug = createArticleDto.slug || this.generateSlug(createArticleDto.title);
-    
-    return from(
-      this.prisma.article.create({
-        data: {
-          ...createArticleDto,
-          slug,
-          status: ArticleStatus.DRAFT,
-        },
-        include: { author: true },
-      })
-    ).pipe(
+
+    // TypeORM create doesn't save, just creates instance
+    const article = this.articleRepository.create({
+      ...createArticleDto,
+      slug,
+      status: ArticleStatus.DRAFT,
+      // Assuming authorId is in createArticleDto
+    });
+
+    return from(this.articleRepository.save(article)).pipe(
+      switchMap((saved) => this.findOne(saved.id)), // Refetch to get relations
       tap(article => this.logger.log(`Draft created: ${article.id}`)),
-      retryWhen(errors => 
+      retryWhen(errors =>
         errors.pipe(
           tap(err => this.logger.warn(`Retry creating draft: ${err.message}`)),
           delay(1000),
@@ -44,21 +48,17 @@ export class ArticleService {
         if (article.status !== ArticleStatus.DRAFT) {
           return throwError(() => new Error('Only draft articles can be submitted'));
         }
-        
-        return from(
-          this.prisma.article.update({
-            where: { id },
-            data: {
-              status: ArticleStatus.SUBMITTED,
-              editorId: submitDto.editorId,
-              version: { increment: 1 },
-            },
-            include: { author: true, editor: true },
-          })
+
+        article.status = ArticleStatus.SUBMITTED;
+        article.editorId = submitDto.editorId;
+        article.version += 1;
+
+        return from(this.articleRepository.save(article)).pipe(
+          switchMap(() => this.findOne(id))
         );
       }),
       tap(article => this.logger.log(`Article submitted: ${article.id}`)),
-      retryWhen(errors => 
+      retryWhen(errors =>
         errors.pipe(
           tap(err => this.logger.warn(`Retry submitting: ${err.message}`)),
           delay(1000),
@@ -74,13 +74,11 @@ export class ArticleService {
         if (article.status !== ArticleStatus.SUBMITTED) {
           return throwError(() => new Error('Only submitted articles can be reviewed'));
         }
-        
-        return from(
-          this.prisma.article.update({
-            where: { id },
-            data: { status: ArticleStatus.UNDER_REVIEW },
-            include: { author: true, editor: true },
-          })
+
+        article.status = ArticleStatus.UNDER_REVIEW;
+
+        return from(this.articleRepository.save(article)).pipe(
+          switchMap(() => this.findOne(id))
         );
       }),
       tap(article => this.logger.log(`Review started: ${article.id}`))
@@ -93,21 +91,17 @@ export class ArticleService {
         if (article.status !== ArticleStatus.UNDER_REVIEW) {
           return throwError(() => new Error('Only articles under review can be approved/rejected'));
         }
-        
-        const newStatus = approveDto.action === ApprovalAction.APPROVE 
-          ? ArticleStatus.APPROVED 
+
+        const newStatus = approveDto.action === ApprovalAction.APPROVE
+          ? ArticleStatus.APPROVED
           : ArticleStatus.REJECTED;
-        
-        return from(
-          this.prisma.article.update({
-            where: { id },
-            data: {
-              status: newStatus,
-              approverId,
-              version: { increment: 1 },
-            },
-            include: { author: true, editor: true, approver: true },
-          })
+
+        article.status = newStatus;
+        article.approverId = approverId;
+        article.version += 1;
+
+        return from(this.articleRepository.save(article)).pipe(
+          switchMap(() => this.findOne(id))
         );
       }),
       tap(article => this.logger.log(`Article ${approveDto.action.toLowerCase()}: ${article.id}`))
@@ -120,16 +114,12 @@ export class ArticleService {
         if (article.status !== ArticleStatus.APPROVED) {
           return throwError(() => new Error('Only approved articles can be published'));
         }
-        
-        return from(
-          this.prisma.article.update({
-            where: { id },
-            data: {
-              status: ArticleStatus.PUBLISHED,
-              publishedAt: new Date(),
-            },
-            include: { author: true, editor: true, approver: true },
-          })
+
+        article.status = ArticleStatus.PUBLISHED;
+        article.publishedAt = new Date();
+
+        return from(this.articleRepository.save(article)).pipe(
+          switchMap(() => this.findOne(id))
         );
       }),
       tap(article => this.logger.log(`Article published: ${article.id}`))
@@ -138,18 +128,28 @@ export class ArticleService {
 
   findAll(): Observable<any[]> {
     return from(
-      this.prisma.article.findMany({
-        include: { author: true, editor: true, approver: true },
-        orderBy: { updatedAt: 'desc' },
+      this.articleRepository.find({
+        relations: {
+          author: true,
+          editor: true,
+          approver: true,
+        },
+        order: {
+          updatedAt: 'DESC',
+        },
       })
     );
   }
 
   findOne(id: number): Observable<any> {
     return from(
-      this.prisma.article.findUnique({
+      this.articleRepository.findOne({
         where: { id },
-        include: { author: true, editor: true, approver: true },
+        relations: {
+          author: true,
+          editor: true,
+          approver: true,
+        },
       })
     ).pipe(
       switchMap(article => {
@@ -162,25 +162,23 @@ export class ArticleService {
   }
 
   update(id: number, updateArticleDto: UpdateArticleDto): Observable<any> {
-    return from(
-      this.prisma.article.update({
-        where: { id },
-        data: {
-          ...updateArticleDto,
-          version: { increment: 1 },
-        },
-        include: { author: true, editor: true, approver: true },
-      })
-    ).pipe(
+    return this.findOne(id).pipe(
+      switchMap(article => {
+        // Merge updates
+        Object.assign(article, updateArticleDto);
+        article.version += 1;
+
+        return from(this.articleRepository.save(article)).pipe(
+          switchMap(() => this.findOne(id))
+        );
+      }),
       tap(article => this.logger.log(`Article updated: ${article.id}`))
     );
   }
 
   remove(id: number): Observable<any> {
     return from(
-      this.prisma.article.delete({
-        where: { id },
-      })
+      this.articleRepository.delete(id)
     ).pipe(
       tap(() => this.logger.log(`Article deleted: ${id}`))
     );

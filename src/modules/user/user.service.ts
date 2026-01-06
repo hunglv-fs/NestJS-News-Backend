@@ -1,65 +1,56 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) { }
 
   async create(createUserDto: CreateUserDto) {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    return this.prisma.user.create({
-      data: {
-        ...createUserDto,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const user = this.userRepository.create({
+      ...createUserDto,
+      password: hashedPassword,
     });
+    const savedUser = await this.userRepository.save(user);
+    const { password, refreshToken, ...result } = savedUser;
+    return result;
   }
 
   async findAll() {
-    return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const users = await this.userRepository.find({
+      select: ['id', 'email', 'name', 'createdAt', 'updatedAt'],
     });
+    return users;
   }
 
   async findOne(id: number) {
-    return this.prisma.user.findUnique({
+    return this.userRepository.findOne({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: ['id', 'email', 'name', 'createdAt', 'updatedAt'],
     });
+  }
+
+  async findOneByEmail(email: string) {
+    return this.userRepository.findOne({ where: { email } });
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    return this.prisma.user.update({
-      where: { id },
-      data: updateUserDto,
-    });
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
+    await this.userRepository.update(id, updateUserDto);
+    return this.findOne(id);
   }
 
   async remove(id: number) {
-    return this.prisma.user.delete({
-      where: { id },
-    });
+    return this.userRepository.delete(id);
   }
 }
