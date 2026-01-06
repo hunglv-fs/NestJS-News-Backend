@@ -6,7 +6,9 @@ A NestJS backend application with Fastify adapter, PostgreSQL, and Prisma ORM fo
 
 - **Fastify Adapter** - High performance HTTP server
 - **TypeScript Strict Mode** - Enhanced type safety
-- **PostgreSQL + Prisma** - Database with type-safe ORM
+- **PostgreSQL + TypeORM** - Database with type-safe ORM
+- **RBAC (Role-Based Access Control)** - Roles and permissions system
+- **JWT Authentication** - Secure authentication with refresh tokens
 - **Global Exception Filter** - Centralized error handling
 - **Global Validation Pipe** - Request validation
 - **Logging Interceptor** - Request/response logging
@@ -24,22 +26,29 @@ npm install
 copy .env.example .env
 ```
 
-3. Update database URL in `.env`
-
-4. Generate Prisma client:
-```bash
-npm run prisma:generate
+3. Update database URL in `.env`:
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/nestjs_news_db?schema=public"
 ```
 
-5. Run migrations:
+4. **Setup database with one command** (creates tables & seeds data):
 ```bash
-npm run prisma:migrate
+npm run db:setup
 ```
 
-6. Start development server:
+This will automatically:
+- Create all tables using TypeORM entities
+- Seed roles, permissions, users, and sample articles
+- Default login: `admin@example.com` / `password123`
+
+5. Start development server:
 ```bash
 npm run start:dev
 ```
+
+The API will be available at `http://localhost:3000`
+
+For detailed database setup information, see [DATABASE_SETUP.md](./DATABASE_SETUP.md)
 
 ## API Endpoints
 

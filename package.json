@@ -21,7 +21,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "db:setup": "ts-node -r tsconfig-paths/register -r dotenv/config src/scripts/seed.ts"
   },
   "dependencies": {
     "@fastify/static": "^6.12.0",
