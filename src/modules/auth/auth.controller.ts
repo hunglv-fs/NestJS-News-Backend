@@ -3,14 +3,17 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PermissionsGuard } from '../rbac/guards/permissions.guard';
+import { Permissions } from '../rbac/decorators/permissions.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
@@ -26,6 +29,27 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('admin/login')
+  @ApiTags('Admin Auth')
+  @ApiOperation({ summary: 'Admin login (admin role required)' })
+  @ApiResponse({ status: 200, description: 'Admin logged in successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials or not admin' })
+  adminLogin(@Body() loginDto: LoginDto) {
+    return this.authService.adminLogin(loginDto);
+  }
+
+  @Post('admin/register')
+  @ApiTags('Admin Auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('users:create')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin creates user with role assignment' })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  adminRegister(@Body() adminRegisterDto: AdminRegisterDto) {
+    return this.authService.adminRegister(adminRegisterDto);
   }
 
   @Post('refresh')

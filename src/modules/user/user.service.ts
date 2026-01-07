@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
+import { Role } from '../rbac/entities/role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -11,6 +12,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>,
   ) { }
 
   async create(createUserDto: CreateUserDto) {
@@ -52,5 +55,32 @@ export class UserService {
 
   async remove(id: number) {
     return this.userRepository.delete(id);
+  }
+
+  async assignRole(userId: number, roleId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify role exists
+    const role = await this.roleRepository.findOne({
+      where: { id: roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    // Prevent assigning admin role
+    if (role.name === 'admin') {
+      throw new BadRequestException('Cannot assign admin role');
+    }
+
+    await this.userRepository.update(userId, { roleId });
+    return this.findOne(userId);
   }
 }
