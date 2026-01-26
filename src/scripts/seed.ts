@@ -1,10 +1,15 @@
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { AppModule } from '../app.module';
 import { DataSource } from 'typeorm';
-import { dataSourceOptions } from '../data-source';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 async function runSeed() {
-    const dataSource = new DataSource(dataSourceOptions);
+    // Create a Nest application context to get ConfigService & DataSource
+    const app = await NestFactory.createApplicationContext(AppModule);
+    const configService = app.get(ConfigService);
+    const dataSource = app.get(DataSource);
 
     try {
         console.log('🔄 Connecting to database...');
@@ -43,7 +48,6 @@ async function runSeed() {
         console.log('  - Users: admin@example.com, editor@example.com, reporter@example.com');
         console.log('  - Articles: 3 sample articles');
         console.log('\n🔑 Default password for all users: password123');
-
     } catch (error) {
         console.error('❌ Error during seeding:', error);
         if (error instanceof Error) {
@@ -56,6 +60,7 @@ async function runSeed() {
             await dataSource.destroy();
             console.log('🔌 Database connection closed');
         }
+        await app.close();
     }
 }
 
