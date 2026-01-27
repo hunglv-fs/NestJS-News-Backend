@@ -14,6 +14,8 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { AssignPermissionDto } from './dto/assign-permission.dto';
+import { AssignUserRoleDto } from './dto/assign-user-role.dto';
+import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
@@ -51,9 +53,9 @@ export class RbacController {
 
   @Post('roles/assign')
   @Roles('admin')
-  @ApiOperation({ summary: 'Assign role to user (Admin only)' })
-  assignRole(@Body() assignRoleDto: AssignRoleDto) {
-    return this.roleService.assignToUser(assignRoleDto);
+  @ApiOperation({ summary: 'Assign roles to user (Admin only)' })
+  assignRolesToUser(@Body() assignUserRoleDto: AssignUserRoleDto) {
+    return this.roleService.assignRolesToUser(assignUserRoleDto);
   }
 
   @Delete('roles/:id')
@@ -106,5 +108,29 @@ export class RbacController {
   @ApiOperation({ summary: 'Delete permission (Admin only)' })
   removePermission(@Param('id') id: string) {
     return this.permissionService.remove(id);
+  }
+
+  @Post('roles/:id/permissions')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update role permissions (Admin only)' })
+  updateRolePermissions(
+    @Param('id') roleId: string,
+    @Body() updateRolePermissionsDto: UpdateRolePermissionsDto,
+  ) {
+    return this.roleService.updateRolePermissions(roleId, updateRolePermissionsDto);
+  }
+
+  @Get('users/:userId/roles')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get user roles (Admin only)' })
+  getUserRoles(@Param('userId') userId: string) {
+    return this.roleService.getUserRoles(parseInt(userId));
+  }
+
+  @Get('roles/:roleId/permissions')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get role permissions (Admin only)' })
+  getRolePermissions(@Param('roleId') roleId: string) {
+    return this.roleService.getRolePermissions(roleId);
   }
 }
