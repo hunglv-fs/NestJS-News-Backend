@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { User } from '../../user/entities/user.entity';
 import { UserRole } from '../entities/user-role.entity';
@@ -124,7 +124,7 @@ export class RoleService {
 
     // Validate all permissions exist
     const permissionCount = await this.rolePermissionRepository.count({
-      where: { permissionId: permissionIds },
+      where: { permission: { id: In(permissionIds) } },
     });
     if (permissionCount !== permissionIds.length) {
       throw new NotFoundException('One or more permissions not found');

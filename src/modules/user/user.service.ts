@@ -80,7 +80,7 @@ export class UserService {
       throw new BadRequestException('Cannot assign admin role');
     }
 
-    await this.userRepository.update(userId, { roleId });
+    await this.userRepository.update(userId, { roles: [{ id: roleId }] });
     return this.findOne(userId);
   }
 }

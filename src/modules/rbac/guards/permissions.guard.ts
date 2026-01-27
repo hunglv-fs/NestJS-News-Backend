@@ -29,9 +29,9 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const userWithPermissions = await this.userRepository.findOne({
-      where: { id: user.userId },
+      where: { id: user.id },
       relations: {
-        role: {
+        roles: {
           permissions: {
             permission: true,
           },
@@ -39,11 +39,11 @@ export class PermissionsGuard implements CanActivate {
       },
     });
 
-    if (!userWithPermissions?.role) {
+    if (!userWithPermissions?.roles?.[0]) {
       return false;
     }
 
-    const userPermissions = userWithPermissions.role.permissions.map(
+    const userPermissions = userWithPermissions.roles[0].permissions.map(
       rp => rp.permission.name
     );
 

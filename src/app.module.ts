@@ -5,6 +5,7 @@ import { UserModule } from './modules/user/user.module';
 import { ArticleModule } from './modules/article/article.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { CategoryModule } from './modules/category/category.module';
 import { configuration } from './config/configuration';
 
 @Module({
@@ -18,6 +19,7 @@ import { configuration } from './config/configuration';
     RbacModule,
     UserModule,
     ArticleModule,
+    CategoryModule,
   ],
 })
 export class AppModule {}

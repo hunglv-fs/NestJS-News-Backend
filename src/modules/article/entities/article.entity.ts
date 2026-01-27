@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { Category } from '../../category/entities/category.entity';
 
 export enum ArticleStatus {
     DRAFT = 'DRAFT',
@@ -57,6 +58,10 @@ export class Article {
     @ManyToOne(() => User, (user) => user.approvedArticles, { nullable: true })
     @JoinColumn({ name: 'approverId' })
     approver?: User;
+
+    @ManyToOne(() => Category, { nullable: true })
+    @JoinColumn({ name: 'categoryId' })
+    category?: Category;
 
     @CreateDateColumn()
     createdAt!: Date;

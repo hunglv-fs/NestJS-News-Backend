@@ -29,14 +29,14 @@ export class RolesGuard implements CanActivate {
     }
 
     const userWithRole = await this.userRepository.findOne({
-      where: { id: user.userId },
-      relations: { role: true },
+      where: { id: user.id },
+      relations: { roles: true },
     });
 
-    if (!userWithRole?.role) {
+    if (!userWithRole?.roles?.[0]) {
       return false;
     }
 
-    return requiredRoles.includes(userWithRole.role.name);
+    return requiredRoles.includes(userWithRole.roles[0].name);
   }
 }
