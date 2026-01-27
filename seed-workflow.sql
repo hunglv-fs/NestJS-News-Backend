@@ -1,3 +1,15 @@
+-- Create user_roles table if it doesn't exist
+CREATE TABLE IF NOT EXISTS "user_roles" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" INTEGER NOT NULL,
+    "roleId" UUID NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_user_roles_userId" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE,
+    CONSTRAINT "FK_user_roles_roleId" FOREIGN KEY ("roleId") REFERENCES "roles"("id") ON DELETE CASCADE,
+    CONSTRAINT "UQ_user_roles_userId_roleId" UNIQUE ("userId", "roleId")
+);
+
 -- Insert default admin role
 INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('admin-role-id', 'admin', 'Administrator role with full access', CURRENT_TIMESTAMP);
 
@@ -70,10 +82,16 @@ INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES
 ('rp-22', 'publisher-role-id', 'perm-articles-publish');
 
 -- Insert sample users (password: 'password123' for all)
-INSERT INTO "users" ("email", "password", "name", "roleId", "updatedAt") VALUES 
-('admin@example.com', '$2b$10$x4Sh/hGRdQaxany4tlIxA.k48L4U6.aRG.nsNGEnt/j0RSEklXVMm', 'Admin User', 'admin-role-id', CURRENT_TIMESTAMP),
-('editor@example.com', '$2b$10$x4Sh/hGRdQaxany4tlIxA.k48L4U6.aRG.nsNGEnt/j0RSEklXVMm', 'Editor User', 'admin-role-id', CURRENT_TIMESTAMP),
-('reporter@example.com', '$2b$10$x4Sh/hGRdQaxany4tlIxA.k48L4U6.aRG.nsNGEnt/j0RSEklXVMm', 'Reporter User', 'admin-role-id', CURRENT_TIMESTAMP);
+INSERT INTO "users" ("email", "password", "name", "updatedAt") VALUES 
+('admin@example.com', '$2b$10$x4Sh/hGRdQaxany4tlIxA.k48L4U6.aRG.nsNGEnt/j0RSEklXVMm', 'Admin User', CURRENT_TIMESTAMP),
+('editor@example.com', '$2b$10$x4Sh/hGRdQaxany4tlIxA.k48L4U6.aRG.nsNGEnt/j0RSEklXVMm', 'Editor User', CURRENT_TIMESTAMP),
+('reporter@example.com', '$2b$10$x4Sh/hGRdQaxany4tlIxA.k48L4U6.aRG.nsNGEnt/j0RSEklXVMm', 'Reporter User', CURRENT_TIMESTAMP);
+
+-- Insert user_roles relationships for existing users
+INSERT INTO "user_roles" ("userId", "roleId", "updatedAt") VALUES 
+(1, 'admin-role-id', CURRENT_TIMESTAMP),
+(2, 'admin-role-id', CURRENT_TIMESTAMP),
+(3, 'admin-role-id', CURRENT_TIMESTAMP);
 
 -- Insert sample articles with workflow
 INSERT INTO "articles" ("title", "slug", "content", "status", "authorId", "editorId", "updatedAt") VALUES 

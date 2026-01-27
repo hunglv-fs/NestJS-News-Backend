@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Role } from '../../rbac/entities/role.entity';
+import { UserRole } from '../../rbac/entities/user-role.entity';
 import { Article } from '../../article/entities/article.entity';
 
 @Entity('users')
@@ -19,12 +20,12 @@ export class User {
     @Column({ type: 'varchar', nullable: true })
     refreshToken?: string | null;
 
-    @Column({ nullable: true })
-    roleId?: string;
+    // Many-to-many relationship through junction table
+    @OneToMany(() => UserRole, userRole => userRole.user, { cascade: true })
+    userRoles!: UserRole[];
 
-    @ManyToOne(() => Role, (role) => role.users, { nullable: true })
-    @JoinColumn({ name: 'roleId' })
-    role?: Role;
+    @OneToMany(() => Role, role => role.users)
+    roles!: Role[];
 
     @CreateDateColumn()
     createdAt!: Date;

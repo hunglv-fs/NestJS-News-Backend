@@ -1,6 +1,7 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BeforeInsert } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../user/entities/user.entity';
+import { UserRole } from './user-role.entity';
 import { RolePermission } from './role-permission.entity';
 
 @Entity('roles')
@@ -14,7 +15,11 @@ export class Role {
     @Column({ nullable: true })
     description?: string;
 
-    @OneToMany(() => User, (user) => user.role)
+    // Many-to-many relationship through junction table
+    @OneToMany(() => UserRole, userRole => userRole.role)
+    userRoles!: UserRole[];
+
+    @OneToMany(() => User, user => user.roles)
     users!: User[];
 
     @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role)

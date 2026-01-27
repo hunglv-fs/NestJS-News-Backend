@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { RolePermission } from './entities/role-permission.entity';
+import { UserRole } from './entities/user-role.entity';
 import { User } from '../user/entities/user.entity';
 import { RbacController } from './rbac.controller';
 import { RoleService } from './services/role.service';
@@ -12,7 +13,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Role, Permission, RolePermission, User]),
+    TypeOrmModule.forFeature([Role, Permission, RolePermission, UserRole, User]),
   ],
   controllers: [RbacController],
   providers: [RoleService, PermissionService, RolesGuard, PermissionsGuard],

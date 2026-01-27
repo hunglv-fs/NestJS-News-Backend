@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { User } from '../user/entities/user.entity';
 import { Role } from '../rbac/entities/role.entity';
+import { UserRole } from '../rbac/entities/user-role.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AdminRegisterDto } from './dto/admin-register.dto';
@@ -17,6 +18,8 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
+    @InjectRepository(UserRole)
+    private userRoleRepository: Repository<UserRole>,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) { }
@@ -43,9 +46,15 @@ export class AuthService {
     const user = this.userRepository.create({
       ...registerDto,
       password: hashedPassword,
-      roleId: registerUserRole.id, // Auto-assign register-user role
     });
     const savedUser = await this.userRepository.save(user);
+
+    // Create user-role relationship
+    const userRole = this.userRoleRepository.create({
+      userId: savedUser.id,
+      roleId: registerUserRole.id,
+    });
+    await this.userRoleRepository.save(userRole);
 
     const tokens = await this.generateTokens(savedUser.id, savedUser.email);
     await this.updateRefreshToken(savedUser.id, tokens.refreshToken);
@@ -101,15 +110,16 @@ export class AuthService {
   async adminLogin(loginDto: LoginDto) {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
-      relations: ['role'],
+      relations: ['userRoles', 'userRoles.role'],
     });
 
     if (!user || !(await bcrypt.compare(loginDto.password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Verify admin role
-    if (user.role?.name !== 'admin') {
+    // Verify admin role through userRoles junction table
+    const hasAdminRole = user.userRoles?.some(userRole => userRole.role.name === 'admin');
+    if (!hasAdminRole) {
       throw new UnauthorizedException('Access denied: Admin only');
     }
 
@@ -117,7 +127,7 @@ export class AuthService {
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, role: user.role.name },
+      user: { id: user.id, email: user.email, name: user.name, roles: user.userRoles?.map(ur => ur.role.name) || [] },
       ...tokens,
     };
   }
@@ -149,10 +159,17 @@ export class AuthService {
       email: adminRegisterDto.email,
       name: adminRegisterDto.name,
       password: hashedPassword,
-      roleId: adminRegisterDto.roleId,
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // Create user-role relationship
+    const userRole = this.userRoleRepository.create({
+      userId: savedUser.id,
+      roleId: adminRegisterDto.roleId,
+    });
+    await this.userRoleRepository.save(userRole);
+
     const { password, refreshToken, ...result } = savedUser;
     return result;
   }
