@@ -1,6 +1,21 @@
 -- Insert default admin role
 INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('admin-role-id', 'admin', 'Administrator role with full access', CURRENT_TIMESTAMP);
 
+-- Insert register-user role
+INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('register-user-role-id', 'register-user', 'Default role for registered users', CURRENT_TIMESTAMP);
+
+-- Insert publisher role
+INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('publisher-role-id', 'publisher', 'Role for publishing articles', CURRENT_TIMESTAMP);
+
+-- Insert approver role
+INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('approver-role-id', 'approver', 'Role for approving articles', CURRENT_TIMESTAMP);
+
+-- Insert editor role
+INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('editor-role-id', 'editor', 'Role for editing articles', CURRENT_TIMESTAMP);
+
+-- Insert writer role
+INSERT INTO "roles" ("id", "name", "description", "updatedAt") VALUES ('writer-role-id', 'writer', 'Role for writing articles', CURRENT_TIMESTAMP);
+
 -- Insert default permissions
 INSERT INTO "permissions" ("id", "name", "description", "updatedAt") VALUES 
 ('perm-users-create', 'users:create', 'Create users', CURRENT_TIMESTAMP),
@@ -26,6 +41,33 @@ INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES
 ('rp-8', 'admin-role-id', 'perm-articles-delete'),
 ('rp-9', 'admin-role-id', 'perm-articles-approve'),
 ('rp-10', 'admin-role-id', 'perm-articles-publish');
+
+-- Assign permissions to register-user role (basic read access)
+INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES 
+('rp-11', 'register-user-role-id', 'perm-articles-read');
+
+-- Assign permissions to writer role (can create and update articles)
+INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES 
+('rp-12', 'writer-role-id', 'perm-articles-create'),
+('rp-13', 'writer-role-id', 'perm-articles-read'),
+('rp-14', 'writer-role-id', 'perm-articles-update');
+
+-- Assign permissions to editor role (can edit, read, and submit articles for approval)
+INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES 
+('rp-15', 'editor-role-id', 'perm-articles-create'),
+('rp-16', 'editor-role-id', 'perm-articles-read'),
+('rp-17', 'editor-role-id', 'perm-articles-update'),
+('rp-18', 'editor-role-id', 'perm-articles-approve');
+
+-- Assign permissions to approver role (can approve articles)
+INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES 
+('rp-19', 'approver-role-id', 'perm-articles-read'),
+('rp-20', 'approver-role-id', 'perm-articles-approve');
+
+-- Assign permissions to publisher role (can publish articles)
+INSERT INTO "role_permissions" ("id", "roleId", "permissionId") VALUES 
+('rp-21', 'publisher-role-id', 'perm-articles-read'),
+('rp-22', 'publisher-role-id', 'perm-articles-publish');
 
 -- Insert sample users (password: 'password123' for all)
 INSERT INTO "users" ("email", "password", "name", "roleId", "updatedAt") VALUES 
