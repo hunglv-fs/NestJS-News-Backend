@@ -215,17 +215,18 @@ describe('AuthService', () => {
     // The adminLogin method checks for admin role through userRoles relationship
     // which requires proper TypeORM entity relationships to be mocked correctly
     // Skipping this test for now as it's not critical for core functionality
-    it.skip('should login admin successfully', async () => {
+    it('should login admin successfully', async () => {
       const loginDto: LoginDto = {
         email: 'admin@example.com',
         password: 'password123',
       };
 
+      const adminRole = { ...mockRole, name: 'admin' };
+      const adminUserRole = { ...mockUserRole, role: adminRole };
       const adminUser = {
         ...mockUser,
         email: 'admin@example.com',
-        userRoles: [mockUserRole],
-        roles: ['admin'],
+        userRoles: [adminUserRole],
       };
 
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(adminUser as any);
@@ -240,7 +241,7 @@ describe('AuthService', () => {
           id: 1,
           email: 'admin@example.com',
           name: 'Test User',
-          roles: ['register-user'],
+          roles: ['admin'],
         },
         accessToken: 'access-token',
         refreshToken: 'access-token',
