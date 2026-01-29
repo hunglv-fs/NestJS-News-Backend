@@ -36,10 +36,10 @@ export class TestHelpers {
       createdAt: new Date(),
       updatedAt: new Date(),
       ...overrides,
-    };
+    } as Role;
   }
 
-  static createMockArticle(overrides: Partial<Article> = {}): Article {
+static createMockArticle(overrides: Partial<Article> = {}): Article {
     return {
       id: 1,
       title: 'Test Article',
@@ -53,7 +53,7 @@ export class TestHelpers {
       publishedAt: undefined,
       createdAt: new Date(),
       updatedAt: new Date(),
-      author: undefined,
+      author: undefined as any,
       editor: undefined,
       approver: undefined,
       category: undefined,
@@ -63,13 +63,12 @@ export class TestHelpers {
 
   static createMockCategory(overrides: Partial<Category> = {}): Category {
     return {
-      id: 1,
+      id: '1',
       name: 'Test Category',
-      description: 'Test category description',
       createdAt: new Date(),
       updatedAt: new Date(),
       ...overrides,
-    };
+    } as Category;
   }
 
   static createMockPermission(overrides: Partial<Permission> = {}): Permission {
@@ -81,7 +80,7 @@ export class TestHelpers {
       createdAt: new Date(),
       updatedAt: new Date(),
       ...overrides,
-    };
+    } as Permission;
   }
 
   static createMockUserRole(overrides: Partial<UserRole> = {}): UserRole {
@@ -91,8 +90,8 @@ export class TestHelpers {
       roleId: '1',
       createdAt: new Date(),
       updatedAt: new Date(),
-      user: undefined,
-      role: undefined,
+      user: undefined as any,
+      role: undefined as any,
       ...overrides,
     };
   }
@@ -103,11 +102,10 @@ export class TestHelpers {
       roleId: '1',
       permissionId: '1',
       createdAt: new Date(),
-      updatedAt: new Date(),
-      role: undefined,
-      permission: undefined,
+      role: undefined as any,
+      permission: undefined as any,
       ...overrides,
-    };
+    } as RolePermission;
   }
 
   static createMockJwtPayload(sub: number, email: string) {
@@ -137,7 +135,7 @@ export class TestHelpers {
     };
   }
 
-  static createMockRepository<T>() {
+static createMockRepository<T>() {
     return {
       find: jest.fn(),
       findOne: jest.fn(),
