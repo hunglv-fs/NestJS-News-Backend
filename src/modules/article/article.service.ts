@@ -54,17 +54,17 @@ export class ArticleService {
         article.version += 1;
 
         return from(this.articleRepository.save(article)).pipe(
-          switchMap(() => this.findOne(id))
+          switchMap(() => this.findOne(id)),
+          retryWhen(errors =>
+            errors.pipe(
+              tap(err => this.logger.warn(`Retry submitting: ${err.message}`)),
+              delay(1000),
+              take(3)
+            )
+          )
         );
       }),
-      tap(article => this.logger.log(`Article submitted: ${article.id}`)),
-      retryWhen(errors =>
-        errors.pipe(
-          tap(err => this.logger.warn(`Retry submitting: ${err.message}`)),
-          delay(1000),
-          take(3)
-        )
-      )
+      tap(article => this.logger.log(`Article submitted: ${article.id}`))
     );
   }
 
