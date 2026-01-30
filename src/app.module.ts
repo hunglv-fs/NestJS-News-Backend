@@ -6,6 +6,7 @@ import { ArticleModule } from './modules/article/article.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { CategoryModule } from './modules/category/category.module';
+import { LoggerModule } from './common/logger/logger.module';
 import { configuration } from './config/configuration';
 
 @Module({
@@ -14,6 +15,7 @@ import { configuration } from './config/configuration';
       isGlobal: true,
       load: [configuration],
     }),
+    LoggerModule,
     DatabaseModule,
     AuthModule,
     RbacModule,

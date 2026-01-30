@@ -5,12 +5,17 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { CustomLoggerService } from './common/logger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter()
+    new FastifyAdapter(),
+    { bufferLogs: true }
   );
+
+  const logger = app.get(CustomLoggerService);
+  app.useLogger(logger);
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -18,7 +23,7 @@ async function bootstrap() {
     transform: true,
   }));
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   const config = new DocumentBuilder()

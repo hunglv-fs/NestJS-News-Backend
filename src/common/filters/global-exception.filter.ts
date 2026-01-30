@@ -6,9 +6,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
+import { CustomLoggerService } from '../logger/logger.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  constructor(private readonly logger: CustomLoggerService) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<FastifyReply>();
@@ -22,6 +25,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getResponse()
         : 'Internal server error';
+
+    // Log error to Winston/CloudWatch
+    this.logger.error(
+      `Exception caught: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
+      exception instanceof Error ? exception.stack : undefined,
+      'GlobalExceptionFilter',
+    );
 
     response.status(status).send({
       statusCode: status,
